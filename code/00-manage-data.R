@@ -1,13 +1,13 @@
 
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-#
-# [Project Title] - [Project Number]
+# Short Term Load Forecasting Competiion - Tao Hong's Energy Analytics Course
 #
-# [Purpose of the code]
+# Prepare and manage data sets used in forecasting
 #
-# Manager : <first.last@dnvgl.com>
-# Author  : <first.last@dnvgl.com>
-# Date    :
+# Author: Jon T Farland <jon.farland@dnvgl.com>
+#
+# Copywright September 2015
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-#
 
 library("ggplot2")
@@ -16,9 +16,7 @@ library("dplyr")
 library("tidyr")
 library("gdata")
 library("reshape2")
-
-
-
+library("forecast")
 
 #-----------------------------------------------------------------------------#
 #
@@ -28,7 +26,9 @@ library("reshape2")
 
 # Current Directory
 getwd()
-setwd()
+
+#set the raw data as the current directory
+setwd("/home/jonfar/Projects/comp-2015/data/rawdat")
 
 #-----------------------------------------------------------------------------#
 #
@@ -36,24 +36,10 @@ setwd()
 #
 #-----------------------------------------------------------------------------#
 
-#csv file
-data<-read.csv()
 
-#R data set
-data<-readRDS()
-
-#potential to run Python program in order to download excel files again here
+#uncomment the next command to run a Python script to download PJM load data for the last 5 years
 #system('python /home/rstudio/projects/comp-2015/data/rawdat/00-pull-historical-load-data.py')
 
-
-#-----------------------------------------------------------------------------#
-#
-# Processing
-#
-#-----------------------------------------------------------------------------#
-
-#set the raw data as the current directory
-setwd("/home/jonfar/Projects/comp-2015/data/rawdat")
 
 #Read in only the dominion tab of the excel spreadsheets
 load11 <- read.xls("load11.xls", sheet=22) %>%
@@ -69,6 +55,13 @@ load15 <- read.xls("load15.xls", sheet=22) %>%
 
 load.data=rbind(load11, load12, load13, load14, load15)
 
+#-----------------------------------------------------------------------------#
+#
+# Processing
+#
+#-----------------------------------------------------------------------------#
+
+
 #go from wide to long
 load.long <- melt(load.data, id=c("DATE", "COMP")) %>%
   rename(hour = variable, load = value) %>%
@@ -76,7 +69,8 @@ load.long <- melt(load.data, id=c("DATE", "COMP")) %>%
          hindx = hour(tindx),
          dindx = as.Date(tindx),
          mindx = month(tindx)) %>%
-  select(tindx, hindx, dindx, mindx, load)
+  select(tindx, hindx, dindx, mindx, load) %>%
+  arrange(dindx, hindx)
 
 #shifted to hour beginning rather than hour ending
 
@@ -98,6 +92,54 @@ plot3 <- plot(load.long$load ~ load.long$dindx)
 histogram(~load | mindx, data = load.long, xlab="Load (MW)", ylab ="Density", col=c("red"))
 histogram(~load | hindx, data = load.long, xlab="Load (MW)", ylab ="Density", col=c("red"))
 histogram(~load , data = load.long, xlab="Load (MW)", ylab ="Density", col=c("red"))
+
+#-----------------------------------------------------------------------------#
+#
+# Preliminary forecasts
+#
+#-----------------------------------------------------------------------------#
+
+y <- load.long$load
+
+naive <- naive(y, 36)
+
+#plot the naive forecasts
+plot.forecast(naive, plot.conf=TRUE, xlab=" ", ylab=" ",
+              main="NAIVE", ) #ylim = c(0,25))
+
+#performance metrics of the naive forecast
+accuracy(naive)
+
+# (2) traditional time series forecast
+fcst1 <-forecast(y, h=36)
+
+#plot traditional forecasts
+plot.forecast(fcst1, plot.conf=TRUE, xlab=" ", ylab=" ", 
+              main="Univariate Time Series", )#ylim = c(0,25))
+
+#performance metrics of the traditional time series forecast
+accuracy(fcst1)
+
+#view forecasts and prediction intervals
+summary(fcst1)
+
+
+# (3) make an artificial neural net
+nnet  <-nnetar(y, 36)
+
+#use the neural net to produce forecasts
+fcst2 <- forecast(nnet)
+
+#plot traditional forecasts
+plot.forecast(fcst2, plot.conf=TRUE, xlab=" ", ylab=" ",
+              main="Artificial Intelligence")#, ylim = c(0,25))
+
+#performance metrics of the traditional time series forecast
+accuracy(fcst2)
+
+#view forecasts 
+summary(fcst2)
+
 
 
 
