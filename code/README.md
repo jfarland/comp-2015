@@ -1,3 +1,3 @@
-#this is the repository for code used in the competition
+# comp-2015 CODE folder
 
 
