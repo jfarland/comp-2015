@@ -28,7 +28,7 @@ library("forecast")
 getwd()
 
 #set the raw data as the current directory
-setwd("/home/jonfar/Projects/comp-2015/data/rawdat")
+setwd("/home/rstudio/projects/comp-2015/data/rawdat")
 
 #-----------------------------------------------------------------------------#
 #
@@ -40,6 +40,8 @@ setwd("/home/jonfar/Projects/comp-2015/data/rawdat")
 #uncomment the next command to run a Python script to download PJM load data for the last 5 years
 #system('python /home/rstudio/projects/comp-2015/data/rawdat/00-pull-historical-load-data.py')
 
+#download just the 2015 data as the competition ensues
+#system('python /home/rstudio/projects/comp-2015/data/rawdat/00-pull-2015-load-data.py')
 
 #Read in only the dominion tab of the excel spreadsheets
 load11 <- read.xls("load11.xls", sheet=22) %>%
