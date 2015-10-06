@@ -150,12 +150,12 @@ summary(fcst2)
 #-----------------------------------------------------------------------------#
 
 means <-
-  load.long %>% group_by(hindx, dow) %>% summarize(mean_kwh = mean(load))
+  load.long %>% group_by(hindx,mindx, dow) %>% summarize(mean_kwh = mean(load))
 
 summary(means)
 
 #initial forecast for 10/6 which is a tuesday
-fcst0 <- subset(means, dow=="Tuesday")
+fcst0 <- subset(means, dow=="Wednesday" & mindx =="10")
 
 View(fcst0)
 
