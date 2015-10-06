@@ -35,6 +35,9 @@
 ### www.drhongtao.com
 
 
+the forecasts produced by PJM are located here: http://www.pjm.com/markets-and-operations/energy/real-time/7-day-load-forecast.aspx
+
+
 ## analysis is being conducted on a cloud server provided by Digital Ocean
 
 ## the IP address is 104.236.137.228

@@ -41,7 +41,7 @@ setwd("/home/rstudio/projects/comp-2015/data/rawdat")
 #system('python /home/rstudio/projects/comp-2015/data/rawdat/00-pull-historical-load-data.py')
 
 #download just the 2015 data as the competition ensues
-#system('python /home/rstudio/projects/comp-2015/data/rawdat/00-pull-2015-load-data.py')
+system('python /home/rstudio/projects/comp-2015/data/rawdat/00-pull-2015-load-data.py')
 
 #Read in only the dominion tab of the excel spreadsheets
 load11 <- read.xls("load11.xls", sheet=22) %>%
@@ -70,8 +70,9 @@ load.long <- melt(load.data, id=c("DATE", "COMP")) %>%
   mutate(tindx = mdy_h(paste(DATE, substr(hour, 3, 4)))-duration(1,"hours"),
          hindx = hour(tindx),
          dindx = as.Date(tindx),
-         mindx = month(tindx)) %>%
-  select(tindx, hindx, dindx, mindx, load) %>%
+         mindx = month(tindx),
+         dow   = weekdays(tindx)) %>%
+  select(tindx, hindx, dindx, mindx, load, dow) %>%
   arrange(dindx, hindx)
 
 #shifted to hour beginning rather than hour ending
@@ -142,7 +143,21 @@ accuracy(fcst2)
 #view forecasts 
 summary(fcst2)
 
+#-----------------------------------------------------------------------------#
+#
+# Outputs
+#
+#-----------------------------------------------------------------------------#
 
+means <-
+  load.long %>% group_by(hindx,mindx, dow) %>% summarize(mean_kwh = mean(load))
+
+summary(means)
+
+#initial forecast for 10/6 which is a tuesday
+fcst0 <- subset(means, dow=="Wednesday" & mindx =="10")
+
+View(fcst0)
 
 
 #-----------------------------------------------------------------------------#
