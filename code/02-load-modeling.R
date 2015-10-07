@@ -17,6 +17,7 @@ library("reshape2")
 
 library("forecast")
 library("quantreg")
+library("quantregForest")
 library("mgcv")
 
 #-----------------------------------------------------------------------------#
@@ -113,8 +114,100 @@ load_weather <-
 #
 #-----------------------------------------------------------------------------#
 
+
+#-----------------------------------------------------------------------------#
+#
+# Naive Forecasts
+#
+#-----------------------------------------------------------------------------#
+
+y <- load.long$load
+
+naive <- naive(y, 36)
+
+#plot the naive forecasts
+plot.forecast(naive, plot.conf=TRUE, xlab=" ", ylab=" ",
+              main="NAIVE", ) #ylim = c(0,25))
+
+#performance metrics of the naive forecast
+accuracy(naive)
+
+
+means <-
+  load.long %>% group_by(hindx,mindx, dow) %>% summarize(mean_kwh = mean(load))
+
+summary(means)
+
+#initial forecast for 10/6 which is a tuesday
+fcst0 <- subset(means, dow=="Thursday" & mindx =="10")
+
+View(fcst0)
+
+
+
+#-----------------------------------------------------------------------------#
+#
+# Time Series Models
+#
+#-----------------------------------------------------------------------------#
+
+
+# (2) traditional time series forecast
+fcst1 <-forecast(y, h=36)
+
+#plot traditional forecasts
+plot.forecast(fcst1, plot.conf=TRUE, xlab=" ", ylab=" ", 
+              main="Univariate Time Series", )#ylim = c(0,25))
+
+#performance metrics of the traditional time series forecast
+accuracy(fcst1)
+
+#view forecasts and prediction intervals
+summary(fcst1)
+
+#-----------------------------------------------------------------------------#
+#
+# Artificial Intelligence
+#
+#-----------------------------------------------------------------------------#
+
+
+# (3) make an artificial neural net
+nnet  <-nnetar(y, 36)
+
+#use the neural net to produce forecasts
+fcst2 <- forecast(nnet)
+
+#plot traditional forecasts
+plot.forecast(fcst2, plot.conf=TRUE, xlab=" ", ylab=" ",
+              main="Artificial Intelligence")#, ylim = c(0,25))
+
+#performance metrics of the traditional time series forecast
+accuracy(fcst2)
+
+#view forecasts 
+summary(fcst2)
+
+
+#-----------------------------------------------------------------------------#
+#
+# Quintile Regression
+#
+#-----------------------------------------------------------------------------#
+
+
 #Quantile Regression
 rq1 = rq(load~temp+temp2+temp3+factor(dow)+factor(hindx)+factor(mindx)+lag24+lag48+lag72+lag96+lag120+lag144+lag168,tau=seq(0.01, 0.99, 0.01), load_weather)
+
+postscript("quintiles.pdf", horizontal = FALSE, width = 6.5, height = 3.5)
+plot(rq1, nrow=1, ncol=2)
+dev.off()
+
+#-----------------------------------------------------------------------------#
+#
+# Semiparametric Regression
+#
+#-----------------------------------------------------------------------------#
 
 
 #Semiparametric Model
@@ -129,14 +222,21 @@ anova(sm1)
 
 accuracy(sm1)
 
-vis.gam(sm1, view=c("temp","temp2"),theta=200, thicktype="detailed",)
-
-#ETS model to forecast temperature
+#vis.gam(sm1, view=c("temp","temp2"),theta=200, thicktype="detailed",)
 
 
+#-----------------------------------------------------------------------------#
+#
+# Production level forecasts
+#
+#-----------------------------------------------------------------------------#
 
 
-
+#-----------------------------------------------------------------------------#
+#
+# Forecast Optimization
+#
+#-----------------------------------------------------------------------------#
 
 
 #-----------------------------------------------------------------------------#

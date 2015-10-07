@@ -3,18 +3,30 @@
 #
 # Prepare and manage data sets used in forecasting
 #
-# Author: Jon T Farland <jon.farland@dnvgl.com>
+# Author: Jon T Farland <jonfarland@gmail.com>
 #
 # Copywright September 2015
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-#
 
+#plotting and visual libraries
 library("ggplot2")
 library("lattice")
+library("rworldmap")
+
+#data management libraries
 library("dplyr")
 library("tidyr")
 library("gdata")
 library("reshape2")
+
+#modeling and forecast libraries
 library("forecast")
+
+#weather daya forecasts
+library("weatherData")
+
+
+
 
 #-----------------------------------------------------------------------------#
 #
@@ -129,66 +141,66 @@ histogram(~load , data = load.long, xlab="Load (MW)", ylab ="Density", col=c("re
 
 #-----------------------------------------------------------------------------#
 #
-# Preliminary forecasts
+# Weather Data
 #
 #-----------------------------------------------------------------------------#
 
-y <- load.long$load
+#use weatherData to pull data from Weather Underground
+View(USAirportWeatherStations)
 
-naive <- naive(y, 36)
+VA_stat <- 
+  subset(USAirportWeatherStations, State=="VA")
 
-#plot the naive forecasts
-plot.forecast(naive, plot.conf=TRUE, xlab=" ", ylab=" ",
-              main="NAIVE", ) #ylim = c(0,25))
+View(VA_stat)
 
-#performance metrics of the naive forecast
-accuracy(naive)
-
-# (2) traditional time series forecast
-fcst1 <-forecast(y, h=36)
-
-#plot traditional forecasts
-plot.forecast(fcst1, plot.conf=TRUE, xlab=" ", ylab=" ", 
-              main="Univariate Time Series", )#ylim = c(0,25))
-
-#performance metrics of the traditional time series forecast
-accuracy(fcst1)
-
-#view forecasts and prediction intervals
-summary(fcst1)
+#map weather stations
+newmap<- getMap(resolution="low")
+plot(newmap, xlim=c(-81,-70),ylim=c(30,40))
+points(VA_stat$Lon, VA_stat$Lat, col ="red")
 
 
-# (3) make an artificial neural net
-nnet  <-nnetar(y, 36)
+#pull weather data
 
-#use the neural net to produce forecasts
-fcst2 <- forecast(nnet)
+beg <- as.Date('2011/01/01',format= "%Y/%m/%d")
+end <- as.Date('2015/10/06',format= "%Y/%m/%d")
 
-#plot traditional forecasts
-plot.forecast(fcst2, plot.conf=TRUE, xlab=" ", ylab=" ",
-              main="Artificial Intelligence")#, ylim = c(0,25))
+s <- seq(beg, to = end, by = 'days')
 
-#performance metrics of the traditional time series forecast
-accuracy(fcst2)
+wx_df <- list()
 
-#view forecasts 
-summary(fcst2)
+#wx_df <- getDetailedWeather("RIC", "2015-01-01", opt_all_columns = T)
 
-#-----------------------------------------------------------------------------#
-#
-# Outputs
-#
-#-----------------------------------------------------------------------------#
+# for ( i in seq_along(s))
+# {
+#   print(i)
+#   print(s[i])
+#   wx_df[[i]]<-getDetailedWeather("RIC", s[i], opt_all_columns = T)
+#   wx_df[[i]]$Wind_SpeedMPH[wx_df[[i]]$Wind_SpeedMPH %in% ("Calm")] = 0
+#   wx_df[[i]]$Wind_SpeedMPH = as.numeric(wx_df[[i]]$Wind_SpeedMPH)
+# }
 
-means <-
-  load.long %>% group_by(hindx,mindx, dow) %>% summarize(mean_kwh = mean(load))
+for ( i in seq_along(s))
+{
+  print(i)
+  print(s[i])
+  wx_df[[i]]<-getDetailedWeather("RIC", s[i], opt_temperature_columns = T)
+}
 
-summary(means)
 
-#initial forecast for 10/6 which is a tuesday
-fcst0 <- subset(means, dow=="Thursday" & mindx =="10")
+#unpack the list
+weather <- bind_rows(wx_df) %>%
+  mutate(tindx = floor_date(Time, "hour"),
+         hindx = hour(tindx),
+         dindx = as.Date(Time),
+         TemperatureF = replace(TemperatureF, TemperatureF < -1000, lag(TemperatureF, n=1))) %>%
+  group_by(dindx,hindx) %>%
+  summarize(TemperatureF = mean(TemperatureF)) %>%
+  as.data.frame
 
-View(fcst0)
+
+summary(weather)
+class(weather)
+plot(weather$TemperatureF)
 
 
 #-----------------------------------------------------------------------------#
@@ -201,6 +213,8 @@ View(fcst0)
 #save out the data
 setwd("/home/rstudio/projects/comp-2015/data/")
 save(load.long,file="load-long.Rda")
+save(weather,file="weather.Rda")
+
 
 write.csv()
 writeRDS()
