@@ -21,7 +21,7 @@ points(VA_stat$Lon, VA_stat$Lat, col ="red")
 
 #pull weather data
 
-beg <- as.Date('2010/01/01',format= "%Y/%m/%d")
+beg <- as.Date('2011/01/01',format= "%Y/%m/%d")
 end <- as.Date('2015/10/05',format= "%Y/%m/%d")
 
 s <- seq(beg, to = end, by = 'days')
@@ -48,19 +48,23 @@ for ( i in seq_along(s))
 
 
 #unpack the list
-dom_weather <- bind_rows(wx_df) %>%
+weather <- bind_rows(wx_df) %>%
   mutate(tindx = floor_date(Time, "hour"),
          hindx = hour(tindx),
          dindx = as.Date(Time),
-         TemperatureF = replace(TemperatureF, TemperatureF < -1000, lag(TemperatureF, n=3))) %>%
+         TemperatureF = replace(TemperatureF, TemperatureF < -1000, lag(TemperatureF, n=1))) %>%
   group_by(dindx,hindx) %>%
-  summarize(TemperatureF = mean(TemperatureF)) 
-
-if (dom_weather$TemperatureF < -1000.00) {dom_weather$TemperatureF <- lag(dom_weather$TemperatureF)}
-
-summary(dom_weather)
-plot(dom_weather$TemperatureF)
+  summarize(TemperatureF = mean(TemperatureF)) %>%
+  as.data.frame
 
 
+summary(weather)
+class(weather)
+plot(weather$TemperatureF)
+
+
+#save out the data
+setwd("/home/rstudio/projects/comp-2015/data/")
+save(weather,file="weather.Rda")
 
 

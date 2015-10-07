@@ -1,5 +1,3 @@
-
-
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-#
 # Short Term Load Forecasting Competiion - Tao Hong's Energy Analytics Course
 #
@@ -155,7 +153,7 @@ means <-
 summary(means)
 
 #initial forecast for 10/6 which is a tuesday
-fcst0 <- subset(means, dow=="Wednesday" & mindx =="10")
+fcst0 <- subset(means, dow=="Thursday" & mindx =="10")
 
 View(fcst0)
 
@@ -165,6 +163,11 @@ View(fcst0)
 # Outputs
 #
 #-----------------------------------------------------------------------------#
+
+
+#save out the data
+setwd("/home/rstudio/projects/comp-2015/data/")
+save(load.long,file="load-long.Rda")
 
 write.csv()
 writeRDS()
