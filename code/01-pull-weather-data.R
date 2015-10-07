@@ -1,5 +1,5 @@
 
-
+library(lubridate)
 library(weatherData)
 library(dplyr)
 
@@ -48,8 +48,19 @@ for ( i in seq_along(s))
 
 
 #unpack the list
-wx_df2 <- bind_rows(wx_df)
+dom_weather <- bind_rows(wx_df) %>%
+  mutate(tindx = floor_date(Time, "hour"),
+         hindx = hour(tindx),
+         dindx = as.Date(Time),
+         TemperatureF = replace(TemperatureF, TemperatureF < -1000, lag(TemperatureF, n=3))) %>%
+  group_by(dindx,hindx) %>%
+  summarize(TemperatureF = mean(TemperatureF)) 
+
+if (dom_weather$TemperatureF < -1000.00) {dom_weather$TemperatureF <- lag(dom_weather$TemperatureF)}
+
+summary(dom_weather)
+plot(dom_weather$TemperatureF)
 
 
 
-View(wx_df)
+
