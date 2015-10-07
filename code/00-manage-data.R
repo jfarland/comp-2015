@@ -53,7 +53,24 @@ load14 <- read.xls("load14.xls", sheet=22) %>%
 load15 <- read.xls("load15.xls", sheet=22) %>%
   select(DATE:HE24)
 
-load.data=rbind(load11, load12, load13, load14, load15)
+
+#2015 data goes up until 10/1. We're going to need to download the other preliminary files as well
+str02 <- readLines("20151002_dailyload.csv")
+prelim02 <- read.csv(text=str02,skip=2)
+
+str03 <- readLines("20151003_dailyload.csv")
+prelim03 <- read.csv(text=str03,skip=2)
+
+str04 <- readLines("20151004_dailyload.csv")
+prelim04 <- read.csv(text=str04,skip=2)
+
+str05 <- readLines("20151005_dailyload.csv")
+prelim05 <- read.csv(text=str05,skip=2)
+
+str06 <- readLines("20151006_dailyload.csv")
+prelim06 <- read.csv(text=str06,skip=2)
+
+
 
 #-----------------------------------------------------------------------------#
 #
@@ -61,6 +78,7 @@ load.data=rbind(load11, load12, load13, load14, load15)
 #
 #-----------------------------------------------------------------------------#
 
+load.data=rbind(load11, load12, load13, load14, load15)
 
 #go from wide to long
 load.long <- melt(load.data, id=c("DATE", "COMP")) %>%
@@ -72,6 +90,21 @@ load.long <- melt(load.data, id=c("DATE", "COMP")) %>%
          dow   = weekdays(tindx)) %>%
   select(tindx, hindx, dindx, mindx, load, dow) %>%
   arrange(dindx, hindx)
+
+#stack preliminary data
+prelim.data = rbind(prelim02, prelim03, prelim04, prelim05, prelim06) %>%
+  select(Date, HourEnd, LoadAvgHourlyDOM) %>%
+  rename(hour = HourEnd, load = LoadAvgHourlyDOM) %>%
+  mutate(tindx = mdy_h(paste(Date, hour))-duration(1,"hours"),
+         hindx = hour(tindx),
+         dindx = as.Date(tindx),
+         mindx = month(tindx),
+         dow   = weekdays(tindx)) %>%
+  select(tindx, hindx, dindx, mindx, load, dow) %>%
+  arrange(dindx, hindx)
+
+#stack historical and preliminary metering
+load.long = rbind(load.long, prelim.data)
 
 #shifted to hour beginning rather than hour ending
 
