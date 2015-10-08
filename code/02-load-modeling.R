@@ -39,12 +39,15 @@ setwd("/home/rstudio/projects/comp-2015/data/")
 #-----------------------------------------------------------------------------#
 
 load("load-long.Rda")
-load("weather.Rda")
+load("temp-final.Rda")
 
 #merge the data sets with a left join
 load_weather <-
-  left_join(load.long, weather, by=c("dindx","hindx")) %>%
-  rename(temp = TemperatureF)
+  temp_final %>%
+  mutate(dindx = as.Date(tindx),
+         hindx = hour(tindx) %>%
+  #filter(type=="act") %>%
+  left_join(load.long, temp_final, by=c("dindx","hindx"))
 
 summary(load_weather)
 
@@ -105,8 +108,12 @@ for (i in 1 : length(displacements))
 model_dat <-
   load_weather %>%
   mutate(temp2 = temp*temp,
-         temp3 = temp*temp*temp)  
+         temp3 = temp*temp*temp,
+         dow = weekdays(dindx),
+         mindx = month(dindx))  
 
+summary(model_dat)
+tail(model_dat,100)
 #-----------------------------------------------------------------------------#
 #
 # Naive Forecasts - Univariate
@@ -132,7 +139,7 @@ means <-
 summary(means)
 
 #initial forecast for 10/6 which is a tuesday
-naive2 <- subset(means, dow=="Thursday" & mindx =="10")
+naive2 <- subset(means, dow=="Friday" & mindx =="10")
 
 View(naive2)
 
@@ -162,7 +169,7 @@ summary(fcst1)
 #-----------------------------------------------------------------------------#
 
 # (3) make an artificial neural net
-nnet  <-nnetar(y, 36)
+nnet  <-nnetar(model_dat$load, 72)
 
 #use the neural net to produce forecasts
 fcst2 <- forecast(nnet)
@@ -200,7 +207,7 @@ dev.off()
 
 
 #Semiparametric Model
-sm1 <- gam(load ~  s(temp, bs="cp",k=22)+s(temp2, bs="cp",k=22)+ s(temp3, bs="cp")+factor(dow)+factor(hindx)+factor(mindx)+lag24+lag48+lag72+lag96+lag120+lag144+lag168, family = "gaussian", data = load_weather,
+sm1 <- gam(load ~  s(temp, bs="cp",k=22)+factor(dow)+factor(hindx)+factor(mindx)+lag72+lag96+lag120+lag144+lag168, family = "gaussian", data = model_dat,
             method = "REML", na.action=na.omit)
 
 gam.check(sm1)
@@ -210,6 +217,7 @@ plot(sm1)
 anova(sm1)
 
 accuracy(sm1)
+#todo : models by hour, add humidity and other atmospheric variables, add additional lags, add other weather stations
 
 #vis.gam(sm1, view=c("temp","temp2"),theta=200, thicktype="detailed",)
 
@@ -220,6 +228,25 @@ accuracy(sm1)
 #
 #-----------------------------------------------------------------------------#
 
+#make production forecast dataset
+#step 1 - time series forecast of load to create lags
+
+#only keep predictors and forecasted temperature within range
+         
+forecast_dat <-
+  model_dat %>%
+  filter(dindx > "2015-10-08") %>%
+  filter(dindx < "2015-10-10") %>%
+  select(dindx,temp, dow, hindx, mindx,lag72,lag96,lag120,lag144,lag168)
+         
+summary(forecast_dat)
+
+fcst_prime <- predict(sm1,newdata=forecast_dat)
+
+summary(fcst_prime)
+plot(fcst_prime)
+
+#todo: output forecasts         
 
 #-----------------------------------------------------------------------------#
 #
@@ -236,7 +263,7 @@ accuracy(sm1)
 
 
 
-write.csv()
+write.csv(fcst_prime)
 writeRDS()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-#

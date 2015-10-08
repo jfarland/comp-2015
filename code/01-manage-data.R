@@ -162,7 +162,7 @@ points(VA_stat$Lon, VA_stat$Lat, col ="red")
 #pull weather data
 
 beg <- as.Date('2011/01/01',format= "%Y/%m/%d")
-end <- as.Date('2015/10/06',format= "%Y/%m/%d")
+end <- as.Date('2015/10/08',format= "%Y/%m/%d")
 
 s <- seq(beg, to = end, by = 'days')
 
@@ -202,6 +202,27 @@ summary(weather)
 class(weather)
 plot(weather$TemperatureF)
 
+forecast <- read.csv("temp-forecasts.csv") %>%
+  mutate(tindx = ISOdatetime(year,mindx,dindx,hindx,0,0))
+
+#quick plot
+plot(forecast$tindx,forecast$temp)
+
+#trim data and stack
+temp_act <- 
+  subset(weather, dindx != "2015-10-08") %>%
+  rename(temp = TemperatureF) %>%
+  mutate(type = "act",
+         tindx = ymd_h(paste(dindx, hindx))) %>%
+  select(temp, type, tindx)
+
+temp_fcst <-
+  subset(forecast, dindx != 7 | mindx != 10 ) %>%
+  mutate(type = "fcst") %>%
+  select(temp, type, tindx)
+
+temp_final <-
+  rbind(temp_act, temp_fcst)
 
 #-----------------------------------------------------------------------------#
 #
@@ -211,9 +232,9 @@ plot(weather$TemperatureF)
 
 
 #save out the data
-setwd("/home/rstudio/projects/comp-2015/data/")
+setwd("/home/rstudio/projects/comp-2015/data/rawdat")
 save(load.long,file="load-long.Rda")
-save(weather,file="weather.Rda")
+save(temp_final,file="temp-final.Rda")
 
 
 write.csv()
