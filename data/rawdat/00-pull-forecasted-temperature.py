@@ -35,7 +35,10 @@ forecasts = parsed_json[u'hourly_forecast']
 #do it all concisely and save as tuples.
 data = [(int(x[u'temp'][u'english']),int(x[u'FCTTIME'][u'hour']), int(x[u'FCTTIME'][u'year']),int(x[u'FCTTIME'][u'mon']),int(x[u'FCTTIME'][u'mday']))for x in forecasts]
 
-with open('temp-forecasts.csv','w') as out:
+#assign the name of the output file with a time-stamp
+filename = 'temp-forecasts-%s.csv'%datetime.date.today().strftime('%Y-%m-%d')
+
+with open(filename,'w') as out:
   csv_out=csv.writer(out)
   csv_out.writerow(['temp','hindx','year','mindx','dindx'])
   for row in data:
