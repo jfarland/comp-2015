@@ -102,31 +102,24 @@ for (i in 1 : length(displacements))
 
 #finally create higher order temperature variables
 
-load_weather <-
+model_dat <-
   load_weather %>%
   mutate(temp2 = temp*temp,
          temp3 = temp*temp*temp)  
 
-
 #-----------------------------------------------------------------------------#
 #
-# modeling
-#
-#-----------------------------------------------------------------------------#
-
-
-#-----------------------------------------------------------------------------#
-#
-# Naive Forecasts
+# Naive Forecasts - Univariate
 #
 #-----------------------------------------------------------------------------#
 
-y <- load.long$load
+#assign univariate vector of load
+y <- model_dat$load
 
-naive <- naive(y, 36)
+naive1 <- naive(y, 36)
 
 #plot the naive forecasts
-plot.forecast(naive, plot.conf=TRUE, xlab=" ", ylab=" ",
+plot.forecast(naive1, plot.conf=TRUE, xlab=" ", ylab=" ",
               main="NAIVE", ) #ylim = c(0,25))
 
 #performance metrics of the naive forecast
@@ -139,18 +132,15 @@ means <-
 summary(means)
 
 #initial forecast for 10/6 which is a tuesday
-fcst0 <- subset(means, dow=="Thursday" & mindx =="10")
+naive2 <- subset(means, dow=="Thursday" & mindx =="10")
 
-View(fcst0)
-
-
+View(naive2)
 
 #-----------------------------------------------------------------------------#
 #
-# Time Series Models
+# Time Series Models - Univariate
 #
 #-----------------------------------------------------------------------------#
-
 
 # (2) traditional time series forecast
 fcst1 <-forecast(y, h=36)
@@ -167,10 +157,9 @@ summary(fcst1)
 
 #-----------------------------------------------------------------------------#
 #
-# Artificial Intelligence
+# Artificial Intelligence - Univariate
 #
 #-----------------------------------------------------------------------------#
-
 
 # (3) make an artificial neural net
 nnet  <-nnetar(y, 36)
@@ -191,7 +180,7 @@ summary(fcst2)
 
 #-----------------------------------------------------------------------------#
 #
-# Quintile Regression
+# Quintile Regression - Multivariate
 #
 #-----------------------------------------------------------------------------#
 
@@ -205,7 +194,7 @@ dev.off()
 
 #-----------------------------------------------------------------------------#
 #
-# Semiparametric Regression
+# Semiparametric Regression - Multivariate
 #
 #-----------------------------------------------------------------------------#
 
