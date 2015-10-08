@@ -40,6 +40,3 @@ with open('temp-forecasts.csv','w') as out:
   csv_out.writerow(['temp','hindx','year','mindx','dindx'])
   for row in data:
     csv_out.writerow(row)
-
-
-
