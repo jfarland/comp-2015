@@ -12,6 +12,9 @@ Created on Wed Oct 7th 2015
 import requests
 import urllib
 
+prelim1007 = "http://www.pjm.com/pub/market_system_data/system/hourly_prelim_loads/daily/20151007_dailyload.csv"
+urllib.urlretrieve(prelim1007, "20151007_dailyload.csv")
+
 prelim1006 = "http://www.pjm.com/pub/market_system_data/system/hourly_prelim_loads/daily/20151006_dailyload.csv"
 urllib.urlretrieve(prelim1006, "20151006_dailyload.csv")
 

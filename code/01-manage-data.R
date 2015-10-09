@@ -53,6 +53,8 @@ setwd("/home/rstudio/projects/comp-2015/data/rawdat")
 #download just the 2015 data as the competition ensues
 system('python /home/rstudio/projects/comp-2015/data/rawdat/00-pull-2015-load-data.py')
 
+#system('python /home/rstudio/projects/comp-2015/data/rawdat/00-pull-2015-load-data.py')
+
 #Read in only the dominion tab of the excel spreadsheets
 load11 <- read.xls("load11.xls", sheet=22) %>%
   select(DATE:HE24)
@@ -82,6 +84,8 @@ prelim05 <- read.csv(text=str05,skip=2)
 str06 <- readLines("20151006_dailyload.csv")
 prelim06 <- read.csv(text=str06,skip=2)
 
+str07 <- readLines("20151007_dailyload.csv")
+prelim07 <- read.csv(text=str07,skip=2)
 
 
 #-----------------------------------------------------------------------------#
@@ -104,7 +108,7 @@ load.long <- melt(load.data, id=c("DATE", "COMP")) %>%
   arrange(dindx, hindx)
 
 #stack preliminary data
-prelim.data = rbind(prelim02, prelim03, prelim04, prelim05, prelim06) %>%
+prelim.data = rbind(prelim02, prelim03, prelim04, prelim05, prelim06, prelim07) %>%
   select(Date, HourEnd, LoadAvgHourlyDOM) %>%
   rename(hour = HourEnd, load = LoadAvgHourlyDOM) %>%
   mutate(tindx = mdy_h(paste(Date, hour))-duration(1,"hours"),
@@ -202,7 +206,7 @@ summary(weather)
 class(weather)
 plot(weather$TemperatureF)
 
-forecast <- read.csv("temp-forecasts.csv") %>%
+forecast <- read.csv("temp-forecasts-2015-10-08.csv") %>%
   mutate(tindx = ISOdatetime(year,mindx,dindx,hindx,0,0))
 
 #quick plot
@@ -210,14 +214,14 @@ plot(forecast$tindx,forecast$temp)
 
 #trim data and stack
 temp_act <- 
-  subset(weather, dindx != "2015-10-08") %>%
+  subset(weather, dindx != "2015-10-09") %>%
   rename(temp = TemperatureF) %>%
   mutate(type = "act",
          tindx = ymd_h(paste(dindx, hindx))) %>%
   select(temp, type, tindx)
 
 temp_fcst <-
-  subset(forecast, dindx != 7 | mindx != 10 ) %>%
+  subset(forecast, dindx != 8 | mindx != 10 ) %>%
   mutate(type = "fcst") %>%
   select(temp, type, tindx)
 
@@ -232,9 +236,10 @@ temp_final <-
 
 
 #save out the data
-setwd("/home/rstudio/projects/comp-2015/data/rawdat")
+setwd("/home/rstudio/projects/comp-2015/data")
 save(load.long,file="load-long.Rda")
-save(temp_final,file="temp-final.Rda")
+save(temp_act,file="temp-act.Rda")
+save(temp_fcst,file="temp-fcst.Rda")
 
 
 write.csv()

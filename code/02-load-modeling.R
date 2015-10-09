@@ -42,11 +42,15 @@ load("load-long.Rda")
 load("temp-final.Rda")
 
 #merge the data sets with a left join
-load_weather <-
-  temp_final %>%
+
+
+temp_final <-
+  temp_act %>%
   mutate(dindx = as.Date(tindx),
-         hindx = hour(tindx) %>%
-  #filter(type=="act") %>%
+         hindx = hour(tindx)) %>%
+  select(temp,dindx,hindx)
+
+load_weather <-
   left_join(load.long, temp_final, by=c("dindx","hindx"))
 
 summary(load_weather)
@@ -108,12 +112,11 @@ for (i in 1 : length(displacements))
 model_dat <-
   load_weather %>%
   mutate(temp2 = temp*temp,
-         temp3 = temp*temp*temp,
-         dow = weekdays(dindx),
-         mindx = month(dindx))  
+         temp3 = temp*temp*temp)  
 
 summary(model_dat)
 tail(model_dat,100)
+
 #-----------------------------------------------------------------------------#
 #
 # Naive Forecasts - Univariate
@@ -121,9 +124,9 @@ tail(model_dat,100)
 #-----------------------------------------------------------------------------#
 
 #assign univariate vector of load
-y <- model_dat$load
+y <- model_dat %>% select(tindx, load)
 
-naive1 <- naive(y, 36)
+naive1 <- naive(y$load, 72)
 
 #plot the naive forecasts
 plot.forecast(naive1, plot.conf=TRUE, xlab=" ", ylab=" ",
@@ -132,14 +135,13 @@ plot.forecast(naive1, plot.conf=TRUE, xlab=" ", ylab=" ",
 #performance metrics of the naive forecast
 accuracy(naive)
 
-
 means <-
-  load.long %>% group_by(hindx,mindx, dow) %>% summarize(mean_kwh = mean(load))
+  model_dat %>% group_by(hindx,mindx,dow) %>% summarize(mean_kwh = mean(load))
 
 summary(means)
 
 #initial forecast for 10/6 which is a tuesday
-naive2 <- subset(means, dow=="Friday" & mindx =="10")
+naive2 <- subset(means, dow=="Saturday" & mindx =="10")
 
 View(naive2)
 
@@ -150,7 +152,7 @@ View(naive2)
 #-----------------------------------------------------------------------------#
 
 # (2) traditional time series forecast
-fcst1 <-forecast(y, h=36)
+fcst1 <-forecast(y$load, h=72)
 
 #plot traditional forecasts
 plot.forecast(fcst1, plot.conf=TRUE, xlab=" ", ylab=" ", 
@@ -169,7 +171,7 @@ summary(fcst1)
 #-----------------------------------------------------------------------------#
 
 # (3) make an artificial neural net
-nnet  <-nnetar(model_dat$load, 72)
+nnet  <-nnetar(y$load, 72)
 
 #use the neural net to produce forecasts
 fcst2 <- forecast(nnet)
@@ -219,6 +221,15 @@ anova(sm1)
 accuracy(sm1)
 #todo : models by hour, add humidity and other atmospheric variables, add additional lags, add other weather stations
 
+library(broom)
+
+#try running hourly models instead
+sm2 <- model_dat %>%
+  group_by(hindx)%>%
+  do(tidy(lm(load ~ temp+temp2+temp3+factor(dow)+factor(mindx)+lag72+lag96+lag120+lag144+lag168,data=.)))
+
+
+
 #vis.gam(sm1, view=c("temp","temp2"),theta=200, thicktype="detailed",)
 
 
@@ -232,16 +243,56 @@ accuracy(sm1)
 #step 1 - time series forecast of load to create lags
 
 #only keep predictors and forecasted temperature within range
-         
-forecast_dat <-
-  model_dat %>%
-  filter(dindx > "2015-10-08") %>%
-  filter(dindx < "2015-10-10") %>%
-  select(dindx,temp, dow, hindx, mindx,lag72,lag96,lag120,lag144,lag168)
-         
-summary(forecast_dat)
 
-fcst_prime <- predict(sm1,newdata=forecast_dat)
+
+
+
+
+#take forecasted timestamp and left join load
+
+
+act <- model_dat %>%
+  filter(dindx > "2015-09-01") %>%
+  mutate(type = "act") %>%
+  select(load,temp,dindx,hindx,mindx,dow,type)
+
+fcst_1 <-
+  temp_fcst %>%
+  mutate(dindx = as.Date(tindx),
+         hindx = hour(tindx),
+         mindx = month(dindx),
+         dow = weekdays(dindx),
+         load = NA,
+         type = "fcst") %>%
+  select(load,temp,dindx,hindx,mindx,dow,type)
+
+
+fcst_2 <-
+  rbind(act, fcst_1)
+ 
+#now create lags using most recent load data
+
+cols <- dim(fcst_2)[2] #number of columns before we add lags
+
+for (i in 1 : length(displacements))
+{
+  disp = displacements[i]
+  fcst_2[,i+cols] <- unlist(shift(fcst_2$load, -1*disp))
+  colnames(fcst_2)[c(i+cols)] = lagnames[i]
+}
+
+
+#isolate date to forecast using fitted model
+
+forecast <-
+  fcst_2 %>%
+  filter(dindx > "2015-10-09") %>%
+  filter(dindx < "2015-10-11") %>%
+  select(temp,dindx,hindx,mindx,dow,type,lag72,lag96,lag120,lag144,lag168)
+         
+summary(forecast)
+
+fcst_prime <- predict(sm1,newdata=forecast)
 
 summary(fcst_prime)
 plot(fcst_prime)
