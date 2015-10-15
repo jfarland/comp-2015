@@ -44,5 +44,5 @@ the forecasts produced by PJM are located here: http://www.pjm.com/markets-and-o
 
 ## Rstudio Server is installed there and running R 3.2 on port 8787
 
-## username for this analysis is "rstudio" and the password is "stix21"
+
 
